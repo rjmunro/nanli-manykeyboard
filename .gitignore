@@ -1,0 +1,6 @@
+out/
+*.zip
+*.class
+*.png
+*.fcpxml
+data/
