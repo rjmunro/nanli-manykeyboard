@@ -1,5 +1,8 @@
 package org.nanli.util.manykeyboard;
 
+import java.util.EventObject;
+import java.util.HashMap;
+
 /**
  * Created with IntelliJ IDEA.
  * User: nanli
@@ -7,8 +10,10 @@ package org.nanli.util.manykeyboard;
  * Time: 5:50 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ManyKeyEvent
+public class ManyKeyEvent extends EventObject
 {
+    public static int KEY_PRESSED = "KEY_PRESSED".hashCode();
+    public static int KEY_RELEASED = "KEY_RELEASED".hashCode();
     public static int MK_A	= 0x04;	/* a or A */
     public static int MK_B	= 0x05;	/* b or B */
     public static int MK_C	= 0x06;	/* c or C */
@@ -170,4 +175,166 @@ public class ManyKeyEvent
     public static int MK_ClearOrAgain	= 0xA2;	/* Clear/Again */
     public static int MK_CrSelOrProps	= 0xA3;	/* CrSel/Props */
     public static int MK_ExSel	= 0xA4;	/* ExSel */
+
+    //Modifier key
+    public static int MK_LeftControl	= 1;	/* Left Control */
+    public static int MK_LeftShift	= 2;	/* Left Shift */
+    public static int MK_LeftAlt	= 4;	/* Left Alt */
+    public static int MK_LeftGUI	= 8;	/* Left GUI */
+    public static int MK_RightControl	= 16;	/* Right Control */
+    public static int MK_RightShift	= 32;	/* Right Shift */
+    public static int MK_RightAlt	= 64;	/* Right Alt */
+    public static int MK_RightGUI	= 128;	/* Right GUI */
+
+    private int keyCode = -1;
+    private int type = -1;
+    private boolean isModifier;
+
+    private HashMap<Integer,String> keyMap = new HashMap<Integer, String>();
+
+    private HashMap<Integer,String> modifierMap = new HashMap<Integer, String>();
+
+    private void createMappings()
+    {
+        keyMap.put(MK_A,"a");
+        keyMap.put(MK_B,"b");
+        keyMap.put(MK_C,"c");
+        keyMap.put(MK_D,"c");
+        keyMap.put(MK_E,"e");
+        keyMap.put(MK_F,"f");
+        keyMap.put(MK_G,"g");
+        keyMap.put(MK_H,"h");
+        keyMap.put(MK_I,"i");
+        keyMap.put(MK_J,"j");
+        keyMap.put(MK_K,"k");
+        keyMap.put(MK_L,"l");
+        keyMap.put(MK_M,"m");
+        keyMap.put(MK_N,"n");
+        keyMap.put(MK_O,"o");
+        keyMap.put(MK_P,"p");
+        keyMap.put(MK_Q,"q");
+        keyMap.put(MK_R,"r");
+        keyMap.put(MK_S,"s");
+        keyMap.put(MK_T,"t");
+        keyMap.put(MK_U,"u");
+        keyMap.put(MK_V,"v");
+        keyMap.put(MK_W,"w");
+        keyMap.put(MK_X,"x");
+        keyMap.put(MK_Y,"y");
+        keyMap.put(MK_Z,"z");
+        keyMap.put(MK_1,"1");
+        keyMap.put(MK_2,"2");
+        keyMap.put(MK_3,"3");
+        keyMap.put(MK_4,"4");
+        keyMap.put(MK_5,"5");
+        keyMap.put(MK_6,"6");
+        keyMap.put(MK_7,"7");
+        keyMap.put(MK_8,"8");
+        keyMap.put(MK_9,"9");
+        keyMap.put(MK_0,"0");
+        keyMap.put(MK_Spacebar," ");
+        keyMap.put(MK_Hyphen,"-");
+        keyMap.put(MK_EqualSign,"=");
+        keyMap.put(MK_OpenBracket,"[");
+        keyMap.put(MK_CloseBracket,"]");
+        keyMap.put(MK_Backslash,"\\");
+        keyMap.put(MK_Semicolon,";");
+        keyMap.put(MK_Quote,"\'");
+        keyMap.put(MK_GraveAccentAndTilde,"`");
+        keyMap.put(MK_Comma,",");
+        keyMap.put(MK_Period,".");
+        keyMap.put(MK_Slash,"/");
+
+        keyMap.put(MKPad_Slash,"/");
+        keyMap.put(MKPad_Asterisk,"*");
+        keyMap.put(MKPad_Hyphen,"-");
+        keyMap.put(MKPad_Plus,"+");
+
+        keyMap.put(MKPad_1,"1");
+        keyMap.put(MKPad_2,"2");
+        keyMap.put(MKPad_3,"3");
+        keyMap.put(MKPad_4,"4");
+        keyMap.put(MKPad_5,"5");
+        keyMap.put(MKPad_6,"6");
+        keyMap.put(MKPad_7,"7");
+        keyMap.put(MKPad_8,"8");
+        keyMap.put(MKPad_9,"9");
+        keyMap.put(MKPad_0,"0");
+        keyMap.put(MKPad_Period,".");
+        keyMap.put(MKPad_Comma,",");
+
+
+        modifierMap.put(MK_LeftControl,"L_CONTROL");	/* Left Control */
+        modifierMap.put(MK_LeftShift,"L_SHIFT");	/* Left Shift */
+        modifierMap.put(MK_LeftAlt,"L_ALT");	/* Left Alt */
+        modifierMap.put(MK_LeftGUI,"L_GUI");	/* Left GUI */
+        modifierMap.put(MK_RightControl,"R_CONTROL");	/* Right Control */
+        modifierMap.put(MK_RightShift,"R_SHIFT");	/* Right Shift */
+        modifierMap.put(MK_RightAlt,"R_ALT");	/* Right Alt */
+        modifierMap.put(MK_RightGUI,"R_GUI");	/* Right GUI */
+
+    }
+
+    /**
+     * Constructs a prototypical Event.
+     *
+     * @param source The object on which the Event initially occurred.
+     * @throws IllegalArgumentException
+     *          if source is null.
+     */
+    public ManyKeyEvent(Object source,int keyboardID, int type, int keyCode, boolean isModifier)
+    {
+        super(source);
+        this.keyCode = keyCode;
+        this.type = type;
+        this.isModifier = isModifier;
+        createMappings();
+    }
+
+    public boolean isActionKey()
+    {
+        if(!isModifier)
+        {
+           if(!keyMap.containsKey(this.keyCode))
+               return true;
+           else
+               return false;
+        }else
+        {
+            return false;
+        }
+    }
+
+    public boolean isModifierKey()
+    {
+        return isModifier;
+    }
+
+    public int getKeyCode()
+    {
+        return keyCode;
+    }
+
+    public String getKeystring()
+    {
+        if(!isModifier)
+        return keyMap.get(keyCode);
+
+        if(isModifier)
+        {
+            return modifierMap.get(keyCode);
+        }
+
+        else
+            return null;
+
+    }
+
+    public String getKeyType()
+    {
+        if(type == KEY_PRESSED)
+        {return "KEY_PRESSED";}
+        else
+        {return  "KEY_RELEASED";}
+    }
 }

@@ -10,16 +10,38 @@ import java.io.IOException;
  * Time: 7:31 PM
  * To change this template use File | Settings | File Templates.
  */
-public class TestManyKeyboard
+public class TestManyKeyboard implements ManyKeyEventListener
 {
+
+    @Override
+    public void manyKeyEvent(ManyKeyEvent event)
+    {
+        if(!event.isActionKey())
+        {
+            System.err.println(event.getKeystring() + " " +event.getKeyType());
+        }
+    }
+
     //testing the main
     public static void main(String[] args) throws IOException, InterruptedException
     {
-        ManyKeyboardManager.initializeLibrary();
-        ManyKeyboardManager.getKeyboardDevices();
-        ManyKeyboardManager.openKeyboardDevices();
-        ManyKeyboardManager.readKeyboardDevices();
-        ManyKeyboardManager.closeKeyboardDevices();
+        TestManyKeyboard testManyKeyboard = new TestManyKeyboard();
+        final ManyKeyboardManager keyboardManager = ManyKeyboardManager.INSTANCE;
+        keyboardManager.addManyKeyEventListener(testManyKeyboard);
+
+        new Thread()
+        {
+            public void run()
+            {
+                keyboardManager.initializeLibrary();
+                keyboardManager.getKeyboardDevices();
+                keyboardManager.openKeyboardDevices(false);
+                keyboardManager.readKeyboardDevices();
+                keyboardManager.closeKeyboardDevices();
+            }
+        }.start();
+
 
     }
+
 }

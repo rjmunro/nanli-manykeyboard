@@ -8,31 +8,33 @@ package org.nanli.util.manykeyboard;
  * To change this template use File | Settings | File Templates.
  */
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Vector;
+import java.util.*;
 
 import com.codeminders.hidapi.ClassPathLibraryLoader;
 import com.codeminders.hidapi.HIDDevice;
 import com.codeminders.hidapi.HIDDeviceInfo;
 import com.codeminders.hidapi.HIDManager;
 
-public class ManyKeyboardManager
+public enum ManyKeyboardManager
 {
+    INSTANCE;
+
     private static final int BUFSIZE = 2048;
-    private static final int IRSIZE = 16;//size of input report
 
     private static Vector<HIDDevice> hidDevices = new Vector<HIDDevice>();
     private static Vector<HIDDeviceInfo> hidDeviceInfos = new Vector<HIDDeviceInfo>();
+    private static HashMap<HIDDevice,Integer> hidDeviceIDHashMap = new HashMap<HIDDevice, Integer>();
 
     private static HashMap<HIDDevice,byte[]> deviceBufferHashMap = new HashMap<HIDDevice, byte[]>();
     private static HashMap<HIDDevice,Integer> deviceControlFlagHashMap = new HashMap<HIDDevice, Integer>();  //the control flag
     private static HashMap<HIDDevice,HashSet<Integer>> deviceKeyFlagHashMap = new HashMap<HIDDevice, HashSet<Integer>>();   // the rest key flags
 
+    private Collection listeners;
+
     /**
     * Load javahidlib
     * */
-    public static void initializeLibrary()
+    public void initializeLibrary()
     {
         ClassPathLibraryLoader.loadNativeHIDLibrary();
     }
@@ -40,13 +42,12 @@ public class ManyKeyboardManager
     /**
      * Get IO of the keyboard devices connected to the computer
      * */
-    public static void getKeyboardDevices()
+    public void getKeyboardDevices()
     {
         String property = System.getProperty("java.library.path");
-        System.err.println(property);
+
         try
         {
-
             HIDManager manager = HIDManager.getInstance();
             HIDDeviceInfo[] deviceInfos = manager.listDevices();
             for(int i=0;i<deviceInfos.length;i++)
@@ -69,7 +70,7 @@ public class ManyKeyboardManager
     /**
      *  Close the IO of the keyboard devices connected to the computer
      * */
-    public static void closeKeyboardDevices()
+    public void closeKeyboardDevices()
     {
         //close devices
         for(HIDDevice hidDevice : hidDevices)
@@ -92,18 +93,29 @@ public class ManyKeyboardManager
     /**
      * Open the IO input from the keyboard devices
      * */
-    public static void openKeyboardDevices()
+    public void openKeyboardDevices(boolean blocking)
     {
+        int id = 0;
+
         //open devices
         for(HIDDeviceInfo hidDeviceInfo : hidDeviceInfos)
         {
             try
             {
                 HIDDevice hidDevice = HIDManager.getInstance().openByPath(hidDeviceInfo.getPath());
-
                 hidDevices.add(hidDevice);
-                //hidDevice.enableBlocking();
-                hidDevice.disableBlocking();
+
+                hidDeviceIDHashMap.put(hidDevice,id);
+
+                if(blocking)
+                {
+                    hidDevice.enableBlocking();
+
+                }else
+                {
+                    hidDevice.disableBlocking();
+                }
+
 
                 //this is for reading real time one
                 deviceBufferHashMap.put(hidDevice,new byte[BUFSIZE]);
@@ -118,6 +130,8 @@ public class ManyKeyboardManager
                 System.out.println(e);
             }
 
+            id++;
+
         }
 
     }
@@ -126,14 +140,12 @@ public class ManyKeyboardManager
     /**
      * Read the IO input reports from the keyboard devices
      * */
-    public static void readKeyboardDevices()
+    public void readKeyboardDevices()
     {
-
         while(true)
         {
             for(HIDDevice hidDevice : hidDevices)
             {
-
                 try
                 {
                     //the byte array is called input report,which only works when there is an input event;
@@ -143,8 +155,6 @@ public class ManyKeyboardManager
                     if(n!=0) //sometimes n=0, resulting in the periphiral keyboard always clear the hashset
                     {
                         byte[] buffer = deviceBufferHashMap.get(hidDevice);
-                        //int[] inputReport = new int[8];
-                        //int[] diffInputReport = new int[8];
 
                         HashSet<Integer> currentSet = new HashSet<Integer>();
                         int currentControl = 0;
@@ -202,11 +212,50 @@ public class ManyKeyboardManager
                         }
 
 
+                        //if no one listens, then return
+                        if (listeners == null)
+                            return;
+
+                        //if not return, someone is listening, we process with the following code
+
                         //measure the diff between current flag and last flag
                         int lastFlag = deviceControlFlagHashMap.get(hidDevice);
-                        if((currentControl - lastFlag)!=0) // if ==0, it means nothing has changed
+                        int diff = currentControl - lastFlag;
+
+                        if(diff>0) // more keys are pressed
                         {
-                            System.err.println(currentControl);
+                            //note that 1,2,4,8,16,32,64,128, these digits are 2^n, so we can judge which one is pressed with Binary number
+                            int i = 0;
+                            char[] digits = Integer.toBinaryString(diff).toCharArray();
+                            for(char digit : digits)
+                            {
+                                if(digit == '1')
+                                {
+                                    int power = digits.length-1-i;
+                                    ManyKeyEvent event = new ManyKeyEvent(this, hidDeviceIDHashMap.get(hidDevice),ManyKeyEvent.KEY_PRESSED,(int)Math.pow(2,power),true);
+                                    //System.err.println((int)Math.pow(2,power));
+                                    notifyListeners(event);
+                                }
+                                i++;
+                            }
+
+                            deviceControlFlagHashMap.put(hidDevice,currentControl);
+
+                        }else if(diff < 0) // some keys are released
+                        {
+                            int i = 0;
+                            char[] digits = Integer.toBinaryString(-diff).toCharArray();
+                            for(char digit : digits)
+                            {
+                                if(digit == '1')
+                                {
+                                    int power = digits.length-1-i;
+                                    ManyKeyEvent event = new ManyKeyEvent(this, hidDeviceIDHashMap.get(hidDevice),ManyKeyEvent.KEY_RELEASED,(int)Math.pow(2,power),true);
+                                    //System.err.println((int)Math.pow(2,power));
+                                    notifyListeners(event);
+                                }
+                                i++;
+                            }
 
                             deviceControlFlagHashMap.put(hidDevice,currentControl);
                         }
@@ -222,7 +271,8 @@ public class ManyKeyboardManager
                         {
                             for(Integer key : newKeySet)
                             {
-                                System.err.println(key + "pressed");
+                                ManyKeyEvent event = new ManyKeyEvent(this, hidDeviceIDHashMap.get(hidDevice),ManyKeyEvent.KEY_PRESSED,key,false);
+                                notifyListeners(event);
                             }
                         }
 
@@ -230,7 +280,8 @@ public class ManyKeyboardManager
                         {
                             for(Integer key : removedKeySet)
                             {
-                                System.err.println(key + "released");
+                                ManyKeyEvent event = new ManyKeyEvent(this, hidDeviceIDHashMap.get(hidDevice),ManyKeyEvent.KEY_RELEASED,key,false);
+                                notifyListeners(event);
                             }
                         }
 
@@ -315,5 +366,35 @@ public class ManyKeyboardManager
         }
     }
 
+    public void addManyKeyEventListener(ManyKeyEventListener listener)
+    {
+        if(listeners == null)
+        {
+            listeners = new HashSet();
+        }
+
+        listeners.add(listener);
+    }
+
+    public void removeManyKeyEventListener(ManyKeyEventListener listener)
+    {
+        if(listeners == null)
+        {
+            return;
+        }
+
+        listeners.remove(listener);
+    }
+
+    public void notifyListeners(ManyKeyEvent event)
+    {
+        Iterator iter = listeners.iterator();
+        while(iter.hasNext())
+        {
+            ManyKeyEventListener listener = (ManyKeyEventListener) iter.next();
+            listener.manyKeyEvent(event);
+
+        }
+    }
 
 }
