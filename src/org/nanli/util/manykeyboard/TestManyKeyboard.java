@@ -18,7 +18,7 @@ public class TestManyKeyboard implements ManyKeyEventListener
     {
         if(!event.isActionKey())
         {
-            System.err.println(event.getKeystring() + " " +event.getKeyType());
+            System.err.println("Keyboard "+event.getKeyboardID() + " : "+event.getKeystring() + " " +event.getKeyType());
         }
     }
 

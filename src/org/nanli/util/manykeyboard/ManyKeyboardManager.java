@@ -32,11 +32,12 @@ public enum ManyKeyboardManager
     private Collection listeners;
 
     /**
-    * Load javahidlib
+    * Load javahidlib and create key mappings
     * */
     public void initializeLibrary()
     {
         ClassPathLibraryLoader.loadNativeHIDLibrary();
+        ManyKeyEventManager.createMappings();
     }
 
     /**
@@ -117,13 +118,16 @@ public enum ManyKeyboardManager
                 }
 
 
-                //this is for reading real time one
+                //this is for reading real time buffer
                 deviceBufferHashMap.put(hidDevice,new byte[BUFSIZE]);
 
+                deviceControlFlagHashMap.put(hidDevice,0); //default 0
                 HashSet<Integer> flagSet = new HashSet<Integer>();
                 flagSet.add(0);
-                deviceControlFlagHashMap.put(hidDevice,0); //default 0
                 deviceKeyFlagHashMap.put(hidDevice,flagSet);// default is a set with only 0
+
+                //add one hashmap for each device, keeping track of the pressed keys
+                ManyKeyEventManager.createDeviceKeyPressedHashMap(id);
 
             }catch (IOException e)
             {
@@ -232,7 +236,7 @@ public enum ManyKeyboardManager
                                 if(digit == '1')
                                 {
                                     int power = digits.length-1-i;
-                                    ManyKeyEvent event = new ManyKeyEvent(this, hidDeviceIDHashMap.get(hidDevice),ManyKeyEvent.KEY_PRESSED,(int)Math.pow(2,power),true);
+                                    ManyKeyEvent event = new ManyKeyEvent(this, hidDeviceIDHashMap.get(hidDevice),ManyKeyEvent.KEY_PRESSED,-(int)Math.pow(2,power));
                                     //System.err.println((int)Math.pow(2,power));
                                     notifyListeners(event);
                                 }
@@ -250,7 +254,7 @@ public enum ManyKeyboardManager
                                 if(digit == '1')
                                 {
                                     int power = digits.length-1-i;
-                                    ManyKeyEvent event = new ManyKeyEvent(this, hidDeviceIDHashMap.get(hidDevice),ManyKeyEvent.KEY_RELEASED,(int)Math.pow(2,power),true);
+                                    ManyKeyEvent event = new ManyKeyEvent(this, hidDeviceIDHashMap.get(hidDevice),ManyKeyEvent.KEY_RELEASED,-(int)Math.pow(2,power));
                                     //System.err.println((int)Math.pow(2,power));
                                     notifyListeners(event);
                                 }
@@ -271,7 +275,7 @@ public enum ManyKeyboardManager
                         {
                             for(Integer key : newKeySet)
                             {
-                                ManyKeyEvent event = new ManyKeyEvent(this, hidDeviceIDHashMap.get(hidDevice),ManyKeyEvent.KEY_PRESSED,key,false);
+                                ManyKeyEvent event = new ManyKeyEvent(this, hidDeviceIDHashMap.get(hidDevice),ManyKeyEvent.KEY_PRESSED,key);
                                 notifyListeners(event);
                             }
                         }
@@ -280,7 +284,7 @@ public enum ManyKeyboardManager
                         {
                             for(Integer key : removedKeySet)
                             {
-                                ManyKeyEvent event = new ManyKeyEvent(this, hidDeviceIDHashMap.get(hidDevice),ManyKeyEvent.KEY_RELEASED,key,false);
+                                ManyKeyEvent event = new ManyKeyEvent(this, hidDeviceIDHashMap.get(hidDevice),ManyKeyEvent.KEY_RELEASED,key);
                                 notifyListeners(event);
                             }
                         }
